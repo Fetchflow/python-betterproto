@@ -81,13 +81,13 @@ def parse_option_value(acc: dict[str, str | bool], opt: str) -> dict[str, str | 
     return acc
 
 
-def parse_options(opts: str = "") -> dict[str, str | bool]:
+def parse_options(opts: str) -> dict[str, str | bool]:
     return reduce(
         parse_option_value,
         iter(
             option
             for line in map(lambda line: line.split(","), opts.split("\n"))
-            for option in line
+            for option in line if option != ""
         ),
         {},
     )
@@ -150,7 +150,13 @@ def generate_code(request: CodeGeneratorRequest) -> CodeGeneratorResponse:
             continue
 
         # Add files to the response object
-        output_path = pathlib.Path(*output_package_name.split("."), "__init__.py")
+        output_dir = output_package_name.split(".")
+
+        # Remove top-level namespace if applicable
+        if "ignore_namespace" in plugin_options and output_dir[0] == plugin_options["ignore_namespace"]:
+            output_dir = output_dir[1:]
+
+        output_path = pathlib.Path(*output_dir, "__init__.py")
         output_paths.add(output_path)
 
         response.file.append(
