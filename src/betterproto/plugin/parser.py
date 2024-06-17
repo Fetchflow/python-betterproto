@@ -70,17 +70,13 @@ def traverse(
 
 
 def parse_option_value(acc: dict[str, str | bool], opt: str) -> dict[str, str | bool]:
-    split = opt.split("=")
-    count = len(split)
+    k, *v = map(str.strip, opt.split("="))
 
-    k = split[0].strip()
-
-    if count == 1:
-        acc[k] = True
-    elif count == 2:
-        acc[k] = split[1].strip()
-    else:
+    # empty option, or empty/whitespace key (=val)
+    if k == "":
         raise Exception("Plugin options expect format `option` or `option=value`")
+
+    acc[k] = len(v) > 0 and v[0] or True
 
     return acc
 
@@ -88,8 +84,12 @@ def parse_option_value(acc: dict[str, str | bool], opt: str) -> dict[str, str | 
 def parse_options(opts: str = "") -> dict[str, str | bool]:
     return reduce(
         parse_option_value,
-        iter(option for line in map(lambda line: line.split(","), opts.split("\n")) for option in line),
-        {}
+        iter(
+            option
+            for line in map(lambda line: line.split(","), opts.split("\n"))
+            for option in line
+        ),
+        {},
     )
 
 
