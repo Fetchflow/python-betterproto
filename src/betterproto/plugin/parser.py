@@ -1,5 +1,7 @@
 import pathlib
 import sys
+from functools import reduce
+
 from typing import (
     Generator,
     List,
@@ -67,10 +69,34 @@ def traverse(
     yield from _traverse([4], proto_file.message_type)
 
 
+def parse_option_value(acc: dict[str, str | bool], opt: str) -> dict[str, str | bool]:
+    split = opt.split("=")
+    count = len(split)
+
+    k = split[0].strip()
+
+    if count == 1:
+        acc[k] = True
+    elif count == 2:
+        acc[k] = split[1].strip()
+    else:
+        raise Exception("Plugin options expect format `option` or `option=value`")
+
+    return acc
+
+
+def parse_options(opts: str = "") -> dict[str, str | bool]:
+    return reduce(
+        parse_option_value,
+        iter(option for line in map(lambda line: line.split(","), opts.split("\n")) for option in line),
+        {}
+    )
+
+
 def generate_code(request: CodeGeneratorRequest) -> CodeGeneratorResponse:
     response = CodeGeneratorResponse()
 
-    plugin_options = request.parameter.split(",") if request.parameter else []
+    plugin_options = parse_options(request.parameter)
     response.supported_features = CodeGeneratorResponseFeature.FEATURE_PROTO3_OPTIONAL
 
     request_data = PluginRequestCompiler(plugin_request_obj=request)
